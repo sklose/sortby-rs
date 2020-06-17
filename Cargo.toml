@@ -7,4 +7,5 @@ license = "MIT"
 repository = "https://github.com/sklose/sortby-rs"
 keywords = ["iterator", "data-structure", "sort", "sort-by"]
 categories = ["algorithms", "rust-patterns"]
+description = "adds convenient sort functions for Iterators"
 authors = ["Sebastian Klose <mail@sklose.com>"]
