@@ -66,7 +66,7 @@ where
 {
     pub fn then_sort_by<G, U>(self, f: G) -> SortBy<'a, I>
     where
-        U: Ord,
+        U: PartialOrd,
         G: Fn(&I::Item) -> U + 'a,
         Self: Sized,
         <I as std::iter::Iterator>::Item: 'a,
@@ -74,14 +74,10 @@ where
         let prev = self.compare;
         SortBy {
             iter: self.iter,
-            compare: Box::new(move |a, b| {
-                dbg!(match (prev)(a, b) {
-                    Ordering::Less => Ordering::Less,
-                    Ordering::Greater => Ordering::Greater,
-                    Ordering::Equal => {
-                        f(a).cmp(&f(b))
-                    }
-                })
+            compare: Box::new(move |a, b| match (prev)(a, b) {
+                Ordering::Less => Ordering::Less,
+                Ordering::Greater => Ordering::Greater,
+                Ordering::Equal => f(a).partial_cmp(&f(b)).unwrap_or(Ordering::Equal),
             }),
         }
     }
@@ -109,13 +105,13 @@ where
 pub trait Itertools: Iterator {
     fn sort_by<'a, F, V>(self, f: F) -> SortBy<'a, Self>
     where
-        V: Ord,
+        V: PartialOrd,
         F: Fn(&Self::Item) -> V + 'a,
         Self: Sized,
     {
         SortBy {
             iter: IterState::Unsorted(Some(self)),
-            compare: Box::new(move |a, b| f(a).cmp(&f(b))),
+            compare: Box::new(move |a, b| f(a).partial_cmp(&f(b)).unwrap_or(Ordering::Equal)),
         }
     }
 }
@@ -130,6 +126,14 @@ mod tests {
     struct Person {
         pub age: i32,
         pub name: &'static str,
+    }
+
+    #[test]
+    fn sorts_floats() {
+        let input = vec![5.0, 1.0, 2.0];
+        let actual: Vec<_> = input.iter().sort_by(|v| *v).map(|v| *v).collect();
+
+        assert_equal(actual, vec![1.0, 2.0, 5.0]);
     }
 
     #[test]
