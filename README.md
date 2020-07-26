@@ -1,3 +1,5 @@
+![Rust](https://github.com/sklose/sortby-rs/workflows/Rust/badge.svg) ![Crates](https://img.shields.io/crates/v/sortby)
+
 # Sort By
 
 Convenience functions that allow for sorting iterators.
