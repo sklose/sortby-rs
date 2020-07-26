@@ -31,7 +31,7 @@
 //!   ];
 //!
 //!   let sorted: Vec<_> = data.iter()
-//!     .sort_by(|p| p.age)
+//!     .sort_by_desc(|p| p.age)
 //!     .then_sort_by(|p| p.name)
 //!     .collect();
 //!
@@ -81,6 +81,24 @@ where
             }),
         }
     }
+
+    pub fn then_sort_by_desc<G, U>(self, f: G) -> SortBy<'a, I>
+    where
+        U: PartialOrd,
+        G: Fn(&I::Item) -> U + 'a,
+        Self: Sized,
+        <I as std::iter::Iterator>::Item: 'a,
+    {
+        let prev = self.compare;
+        SortBy {
+            iter: self.iter,
+            compare: Box::new(move |a, b| match (prev)(a, b) {
+                Ordering::Less => Ordering::Less,
+                Ordering::Greater => Ordering::Greater,
+                Ordering::Equal => f(b).partial_cmp(&f(a)).unwrap_or(Ordering::Equal),
+            }),
+        }
+    }
 }
 
 impl<'a, I> Iterator for SortBy<'a, I>
@@ -102,7 +120,7 @@ where
     }
 }
 
-pub trait Itertools: Iterator {
+pub trait SortByIteratorExt: Iterator {
     fn sort_by<'a, F, V>(self, f: F) -> SortBy<'a, Self>
     where
         V: PartialOrd,
@@ -114,9 +132,21 @@ pub trait Itertools: Iterator {
             compare: Box::new(move |a, b| f(a).partial_cmp(&f(b)).unwrap_or(Ordering::Equal)),
         }
     }
+
+    fn sort_by_desc<'a, F, V>(self, f: F) -> SortBy<'a, Self>
+    where
+        V: PartialOrd,
+        F: Fn(&Self::Item) -> V + 'a,
+        Self: Sized,
+    {
+        SortBy {
+            iter: IterState::Unsorted(Some(self)),
+            compare: Box::new(move |a, b| f(b).partial_cmp(&f(a)).unwrap_or(Ordering::Equal)),
+        }
+    }
 }
 
-impl<T: ?Sized> Itertools for T where T: Iterator {}
+impl<T: ?Sized> SortByIteratorExt for T where T: Iterator {}
 
 #[cfg(test)]
 mod tests {
@@ -137,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn sorts_multiple_levels() {
         let data = vec![
             Person {
                 name: "Rich",

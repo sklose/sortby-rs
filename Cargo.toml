@@ -1,6 +1,6 @@
 [package]
 name = "sortby"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2018"
 
 license = "MIT"
@@ -9,3 +9,4 @@ keywords = ["iterator", "data-structure", "sort", "sort-by"]
 categories = ["algorithms", "rust-patterns"]
 description = "adds convenient sort functions for Iterators"
 authors = ["Sebastian Klose <mail@sklose.com>"]
+readme = "README.md"
