@@ -10,33 +10,31 @@
 //!   pub name: &'static str,
 //! }
 //!
-//! fn main() {
-//!   let data = vec![
-//!     Person {
-//!       name: "Rich",
-//!       age: 18,
-//!     },
-//!     Person {
-//!       name: "Bob",
-//!       age: 9,
-//!     },
-//!     Person {
-//!       name: "Marc",
-//!       age: 21,
-//!     },
-//!     Person {
-//!       name: "Alice",
-//!       age: 18,
-//!     },
-//!   ];
+//! let data = vec![
+//!   Person {
+//!     name: "Rich",
+//!     age: 18,
+//!   },
+//!   Person {
+//!     name: "Bob",
+//!     age: 9,
+//!   },
+//!   Person {
+//!     name: "Marc",
+//!     age: 21,
+//!   },
+//!   Person {
+//!     name: "Alice",
+//!     age: 18,
+//!   },
+//! ];
 //!
-//!   let sorted: Vec<_> = data.iter()
-//!     .sort_by_desc(|p| p.age)
-//!     .then_sort_by(|p| p.name)
-//!     .collect();
+//! let sorted: Vec<_> = data.iter()
+//!   .sort_by_desc(|p| p.age)
+//!   .then_sort_by(|p| p.name)
+//!   .collect();
 //!
-//!    println!("{:#?}", sorted);
-//! }
+//! println!("{:#?}", sorted);
 #![warn(rust_2018_idioms)]
 
 use std::cmp::Ordering;
@@ -55,9 +53,11 @@ impl<I: Iterator> IterState<I> {
     }
 }
 
+pub type CompareFn<'a, T> = Box<dyn Fn(&T, &T) -> Ordering + 'a>;
+
 pub struct SortBy<'a, I: Iterator> {
     iter: IterState<I>,
-    compare: Box<dyn Fn(&I::Item, &I::Item) -> Ordering + 'a>,
+    compare: CompareFn<'a, I::Item>,
 }
 
 impl<'a, I> SortBy<'a, I>
@@ -97,6 +97,27 @@ where
                 Ordering::Greater => Ordering::Greater,
                 Ordering::Equal => f(b).partial_cmp(&f(a)).unwrap_or(Ordering::Equal),
             }),
+        }
+    }
+}
+
+impl<'a, I> From<SortBy<'a, I>> for Vec<I::Item>
+where
+    I: Iterator,
+{
+    fn from(mut val: SortBy<'a, I>) -> Self {
+        match val.iter {
+            IterState::Unsorted(ref mut iter) => {
+                let mut vec: Vec<_> = iter.take().unwrap().collect();
+                vec.sort_by(|a, b| (val.compare)(a, b));
+                vec
+            }
+            IterState::Sorted(iter) => {
+                // this is a bit of a weird edge case ... the iterator already
+                // yieled at least one item ... return the remainder as a new
+                // `Vec` seems to be the most sensible behavior
+                iter.collect()
+            }
         }
     }
 }
@@ -156,6 +177,22 @@ mod tests {
     struct Person {
         pub age: i32,
         pub name: &'static str,
+    }
+
+    #[test]
+    fn works_with_empty_iterators() {
+        let input = Vec::<i32>::new();
+        let actual: Vec<_> = input.into_iter().sort_by(|v| *v).collect();
+
+        assert_equal(actual, vec![]);
+    }
+
+    #[test]
+    fn converts_into_vec_to_avoid_double_allocation() {
+        let input = vec![5, 2, 3];
+        let actual: Vec<_> = input.into_iter().sort_by(|v| *v).into();
+
+        assert_equal(actual, vec![2, 3, 5]);
     }
 
     #[test]
