@@ -1,4 +1,6 @@
-![Rust](https://github.com/sklose/sortby-rs/workflows/Rust/badge.svg) ![Crates](https://img.shields.io/crates/v/sortby)
+[![CI](https://github.com/sklose/sortby-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/sklose/sortby-rs/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/sortby.svg)](https://crates.io/crates/sortby)
+[![docs.rs](https://img.shields.io/docsrs/sortby)](https://docs.rs/sortby)
 
 # Sort By
 
